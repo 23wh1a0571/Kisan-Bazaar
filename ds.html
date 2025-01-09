@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmers' Market</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1, h2 {
+            color: #4CAF50;
+        }
+
+        nav {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        nav a {
+            margin: 10px;
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .product {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px;
+            width: 200px;
+            text-align: center;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        input, textarea {
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .login-form, .register-form {
+            display: none;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .cart-item button {
+            background-color: #f44336; /* Red color for delete */
+        }
+
+        .rating {
+            display: flex;
+            justify-content: center;
+        }
+
+        .star {
+            font-size: 20px;
+            color: #ff9800;
+            cursor: pointer;
+        }
+
+        .star-rated {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="#" onclick="showHome()">Home</a>
+        <a href="#" onclick="showLogin()">Login</a>
+        <a href="#" onclick="showFarmers()">Farmers</a>
+        <a href="#" onclick="showBuyers()">Buyers</a>
+    </nav>
+
+    <!-- Home section -->
+    <div id="home" class="section" style="display: block;">
+        <h1>Welcome to the Farmers' Market</h1>
+        <p>Your one-stop solution for connecting local farmers with consumers. Explore fresh produce, organic products, and farming supplies.</p>
+        <button onclick="showLogin()">Login as Farmer or Buyer</button>
+    </div>
+
+    <!-- Login section -->
+    <div id="login" class="section login-form" style="display: none;">
+        <h1>Login</h1>
+        <select id="user-type-login">
+            <option value="farmer">Farmer</option>
+            <option value="buyer">Buyer</option>
+        </select>
+        <input type="text" id="username-login" placeholder="Username" required>
+        <input type="password" id="password-login" placeholder="Password" required>
+        <button onclick="login()">Login</button>
+        <p id="login-message" style="color: red;"></p>
+        <p>Don't have an account? <a href="#" onclick="showRegister()">Create Account</a></p>
+    </div>
+
+    <!-- Register section -->
+    <div id="register" class="section register-form" style="display: none;">
+        <h1>Create Account</h1>
+        <select id="user-type-register">
+            <option value="farmer">Farmer</option>
+            <option value="buyer">Buyer</option>
+        </select>
+        <input type="text" id="username-register" placeholder="Username" required>
+        <input type="password" id="password-register" placeholder="Password" required>
+        <button onclick="register()">Register</button>
+        <p id="register-message" style="color: red;"></p>
+        <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+    </div>
+
+    <!-- Farmer's portal section -->
+    <div id="farmer-section" class="section" style="display: none;">
+        <h1>Farmers' Portal</h1>
+        <h2>Add Your Product</h2>
+        <input type="text" id="farmer-product-name" placeholder="Product Name" required>
+        <input type="number" id="farmer-product-price" placeholder="Product Price" required>
+        <textarea id="farmer-product-description" placeholder="Product Description" required></textarea>
+        <input type="text" id="farmer-product-image" placeholder="Image URL" required>
+        <button onclick="addFarmerProduct()">Add Product</button>
+
+        <h2>Your Products</h2>
+        <div id="farmer-product-list"></div>
+    </div>
+
+    <!-- Buyer's market section -->
+    <div id="buyer-section" class="section" style="display: none;">
+        <h1>Buyer's Market</h1>
+        <h2>Available Products</h2>
+        <input type="text" id="search-input" placeholder="Search for products..." onkeyup="searchProducts()">
+        <div id="product-list"></div>
+
+        <h2>Your Cart</h2>
+        <div id="cart-items"></div>
+        <h3>Total Price: $<span id="total-price">0</span></h3>
+        <button id="buy-button" style="display: none;" onclick="buyItems()">Buy Now</button>
+    </div>
+
+    <script>
+        const products = [];
+        let cart = [];
+        let totalPrice = 0;
+        let loggedInUser = null;
+        let userTypeLoggedIn = null;
+
+        function loadUsers() {
+            return {
+                farmers: JSON.parse(localStorage.getItem('farmers')) || [],
+                buyers: JSON.parse(localStorage.getItem('buyers')) || []
+            };
+        }
+
+        const users = loadUsers();
+
+        function saveUsers() {
+            localStorage.setItem('farmers', JSON.stringify(users.farmers));
+            localStorage.setItem('buyers', JSON.stringify(users.buyers));
+        }
+
+        function showHome() {
+            document.getElementById('home').style.display = 'block';
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('register').style.display = 'none';
+            document.getElementById('farmer-section').style.display = 'none';
+            document.getElementById('buyer-section').style.display = 'none';
+        }
+
+        function showLogin() {
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('login').style.display = 'block';
+            document.getElementById('register').style.display = 'none';
+            document.getElementById('farmer-section').style.display = 'none';
+            document.getElementById('buyer-section').style.display = 'none';
+            document.getElementById('login-message').innerText = '';
+        }
+
+        function showRegister() {
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('register').style.display = 'block';
+            document.getElementById('register-message').innerText = '';
+        }
+
+        function showFarmers() {
+            if (loggedInUser && userTypeLoggedIn === 'farmer') {
+                document.getElementById('home').style.display = 'none';
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('register').style.display = 'none';
+                document.getElementById('farmer-section').style.display = 'block';
+                document.getElementById('buyer-section').style.display = 'none';
+                displayFarmersProducts();
+            } else {
+                alert('Please log in as a farmer to access this section.');
+            }
+        }
+
+        function showBuyers() {
+            if (loggedInUser && userTypeLoggedIn === 'buyer') {
+                document.getElementById('home').style.display = 'none';
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('register').style.display = 'none';
+                document.getElementById('farmer-section').style.display = 'none';
+                document.getElementById('buyer-section').style.display = 'block';
+                displayProducts();
+            } else {
+                alert('Please log in as a buyer to access this section.');
+            }
+        }
+
+        function login() {
+            const username = document.getElementById('username-login').value;
+            const password = document.getElementById('password-login').value;
+            const userType = document.getElementById('user-type-login').value;
+
+            if (userType === 'farmer') {
+                const farmer = users.farmers.find(f => f.username === username && f.password === password);
+                if (farmer) {
+                    loggedInUser = farmer.username;
+                    userTypeLoggedIn = 'farmer';
+                    alert('Farmer login successful!');
+                    showFarmers();
+                } else {
+                    document.getElementById('login-message').innerText = 'Invalid username or password';
+                }
+            } else if (userType === 'buyer') {
+                const buyer = users.buyers.find(b => b.username === username && b.password === password);
+                if (buyer) {
+                    loggedInUser = buyer.username;
+                    userTypeLoggedIn = 'buyer';
+                    alert('Buyer login successful!');
+                    showBuyers();
+                } else {
+                    document.getElementById('login-message').innerText = 'Invalid username or password';
+                }
+            }
+        }
+
+        function register() {
+            const username = document.getElementById('username-register').value;
+            const password = document.getElementById('password-register').value;
+            const userType = document.getElementById('user-type-register').value;
+
+            if (userType === 'farmer') {
+                if (users.farmers.find(f => f.username === username)) {
+                    document.getElementById('register-message').innerText = 'Farmer username already taken';
+                    return;
+                }
+                users.farmers.push({ username, password });
+            } else if (userType === 'buyer') {
+                if (users.buyers.find(b => b.username === username)) {
+                    document.getElementById('register-message').innerText = 'Buyer username already taken';
+                    return;
+                }
+                users.buyers.push({ username, password });
+            }
+
+            saveUsers();
+            alert('Registration successful! You can now log in.');
+            showLogin();
+        }
+
+        function addFarmerProduct() {
+            if (!loggedInUser || userTypeLoggedIn !== 'farmer') {
+                alert('Only logged-in farmers can add products.');
+                return;
+            }
+
+            const name = document.getElementById('farmer-product-name').value;
+            const price = parseFloat(document.getElementById('farmer-product-price').value);
+            const description = document.getElementById('farmer-product-description').value;
+            const imageUrl = document.getElementById('farmer-product-image').value;
+
+            if (name && price && description && imageUrl) {
+                products.push({ name, price, description, imageUrl, ratings: [] });
+                alert('Product added successfully!');
+                document.getElementById('farmer-product-name').value = '';
+                document.getElementById('farmer-product-price').value = '';
+                document.getElementById('farmer-product-description').value = '';
+                document.getElementById('farmer-product-image').value = '';
+                displayFarmersProducts();
+            } else {
+                alert('Please fill in all product details.');
+            }
+        }
+
+        function displayFarmersProducts() {
+            const farmerProductList = document.getElementById('farmer-product-list');
+            farmerProductList.innerHTML = '';
+            products.forEach((product, index) => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product';
+                productDiv.innerHTML = `
+                    <img src="${product.imageUrl}" alt="${product.name}" width="150" height="150">
+                    <h3>${product.name}</h3>
+                    <p>$${product.price}</p>
+                    <p>${product.description}</p>
+                    <button onclick="removeFarmerProduct(${index})">Remove Product</button>
+                `;
+                farmerProductList.appendChild(productDiv);
+            });
+        }
+
+        function removeFarmerProduct(index) {
+            if (!loggedInUser || userTypeLoggedIn !== 'farmer') {
+                alert('Only logged-in farmers can remove products.');
+                return;
+            }
+
+            products.splice(index, 1);
+            alert('Product removed successfully!');
+            displayFarmersProducts();
+        }
+
+        function displayProducts() {
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+
+            products.forEach((product, index) => {
+                const avgRating = product.ratings.length > 0
+                    ? (product.ratings.reduce((acc, curr) => acc + curr) / product.ratings.length).toFixed(1)
+                    : 'No ratings yet';
+
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product';
+                productDiv.innerHTML = `
+                    <img src="${product.imageUrl}" alt="${product.name}" width="150" height="150">
+                    <h3>${product.name}</h3>
+                    <p>$${product.price}</p>
+                    <p>${product.description}</p>
+                    <p>Average Rating: ${avgRating}</p>
+                    <input type="number" id="rating-${index}" min="1" max="5" placeholder="Rate (1-5)">
+                    <button onclick="submitRating(${index})">Rate</button>
+                    <button onclick="addToCart('${product.name}', ${product.price})">Add to Cart</button>
+                `;
+                productList.appendChild(productDiv);
+            });
+        }
+
+        function submitRating(productIndex) {
+            if (!loggedInUser || userTypeLoggedIn !== 'buyer') {
+                alert('Only logged-in buyers can rate products.');
+                return;
+            }
+
+            const ratingInput = document.getElementById(`rating-${productIndex}`);
+            const ratingValue = parseInt(ratingInput.value);
+
+            if (ratingValue >= 1 && ratingValue <= 5) {
+                products[productIndex].ratings.push(ratingValue);
+                alert('Thank you for your rating!');
+                displayProducts();
+            } else {
+                alert('Please provide a valid rating between 1 and 5.');
+            }
+        }
+
+        function addToCart(name, price) {
+            cart.push({ name, price });
+            totalPrice += price;
+            document.getElementById('cart-items').innerHTML = '';
+            cart.forEach((item, index) => {
+                const cartItemDiv = document.createElement('div');
+                cartItemDiv.className = 'cart-item';
+                cartItemDiv.innerHTML = `
+                    <span>${item.name} - $${item.price}</span>
+                    <button onclick="removeFromCart(${index})">Remove</button>
+                `;
+                document.getElementById('cart-items').appendChild(cartItemDiv);
+            });
+            document.getElementById('total-price').innerText = totalPrice.toFixed(2);
+            document.getElementById('buy-button').style.display = 'block';
+        }
+
+        function removeFromCart(index) {
+            totalPrice -= cart[index].price;
+            cart.splice(index, 1);
+            document.getElementById('cart-items').innerHTML = '';
+            cart.forEach((item, index) => {
+                const cartItemDiv = document.createElement('div');
+                cartItemDiv.className = 'cart-item';
+                cartItemDiv.innerHTML = `
+                    <span>${item.name} - $${item.price}</span>
+                    <button onclick="removeFromCart(${index})">Remove</button>
+                `;
+                document.getElementById('cart-items').appendChild(cartItemDiv);
+            });
+            document.getElementById('total-price').innerText = totalPrice.toFixed(2);
+            if (cart.length === 0) {
+                document.getElementById('buy-button').style.display = 'none';
+            }
+        }
+
+        function buyItems() {
+            alert('Purchase complete! Thank you for shopping.');
+            cart = [];
+            totalPrice = 0;
+            document.getElementById('cart-items').innerHTML = '';
+            document.getElementById('total-price').innerText = '0';
+            document.getElementById('buy-button').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
